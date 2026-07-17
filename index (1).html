@@ -1,0 +1,937 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>Đố Chữ — Vietnamese Charades</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@500;600;700;800&family=Be+Vietnam+Pro:ital,wght@0,400;0,500;0,600;0,700;0,800;1,600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --ink: #17120E;
+    --lacquer: #1C1512;
+    --son: #C8372E;      /* vermillion red */
+    --son-deep: #9E2A22;
+    --gold: #E3B24C;
+    --gold-soft: #F3D889;
+    --jade: #2F6E5C;
+    --paper: #F4EBD3;
+    --paper-dim: #E7DAB4;
+    --ok: #2F6E5C;
+    --skip: #8A3A2E;
+  }
+  *{box-sizing:border-box; -webkit-tap-highlight-color: transparent;}
+  html,body{height:100%;}
+  body{
+    margin:0;
+    font-family:'Be Vietnam Pro', sans-serif;
+    background: var(--ink);
+    color: var(--paper);
+    overflow:hidden;
+    position:relative;
+  }
+
+  /* faint lacquer texture via layered radial gradients */
+  body::before{
+    content:"";
+    position:fixed; inset:0;
+    background:
+      radial-gradient(circle at 15% 20%, rgba(227,178,76,0.05), transparent 40%),
+      radial-gradient(circle at 85% 80%, rgba(200,55,46,0.08), transparent 45%),
+      radial-gradient(circle at 50% 50%, rgba(0,0,0,0) 0%, rgba(0,0,0,0.3) 100%);
+    pointer-events:none;
+    z-index:0;
+  }
+
+  .screen{
+    position:relative;
+    z-index:1;
+    height:100dvh;
+    width:100%;
+    display:none;
+    flex-direction:column;
+    align-items:center;
+  }
+  .screen.active{display:flex;}
+
+  /* ---------- decorative top border motif ---------- */
+  .border-strip{
+    width:100%; height:10px;
+    background: repeating-linear-gradient(90deg, var(--gold) 0 18px, transparent 18px 26px);
+    opacity:0.85;
+    flex-shrink:0;
+  }
+
+  /* ================= HOME SCREEN ================= */
+  #home{ padding: 0 24px; justify-content:flex-start;}
+  .home-inner{
+    max-width: 560px;
+    width:100%;
+    margin: 0 auto;
+    display:flex;
+    flex-direction:column;
+    align-items:center;
+    padding-top: 8vh;
+    text-align:center;
+  }
+  .eyebrow{
+    font-family:'Be Vietnam Pro';
+    letter-spacing: 0.35em;
+    text-transform:uppercase;
+    font-size: 12px;
+    color: var(--gold-soft);
+    margin-bottom: 14px;
+    font-weight:600;
+  }
+  h1.title{
+    font-family:'Baloo 2';
+    font-weight:800;
+    font-size: clamp(44px, 12vw, 72px);
+    line-height: 0.95;
+    margin: 0 0 6px 0;
+    color: var(--paper);
+    text-shadow: 0 3px 0 var(--son-deep);
+  }
+  .title .accent{ color: var(--gold); }
+  .subtitle{
+    font-size: 16px;
+    color: var(--paper-dim);
+    max-width: 380px;
+    line-height:1.5;
+    margin: 10px 0 40px;
+  }
+
+  .cat-grid{
+    display:grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+    width:100%;
+    margin-bottom: 28px;
+  }
+  .cat-card{
+    position:relative;
+    background: var(--lacquer);
+    border: 2px solid rgba(227,178,76,0.25);
+    border-radius: 14px;
+    padding: 16px 14px;
+    text-align:left;
+    cursor:pointer;
+    transition: transform .15s ease, border-color .15s ease, background .15s ease;
+    -webkit-user-select:none; user-select:none;
+  }
+  .cat-card:active{ transform: scale(0.96); }
+  .cat-card.selected{
+    background: linear-gradient(135deg, var(--son) 0%, var(--son-deep) 100%);
+    border-color: var(--gold);
+  }
+  .cat-card .cn{
+    font-family:'Baloo 2';
+    font-weight:700;
+    font-size: 17px;
+    display:block;
+    margin-bottom: 2px;
+  }
+  .cat-card .ce{
+    font-size: 12px;
+    color: var(--paper-dim);
+    opacity:0.8;
+  }
+  .cat-card.selected .ce{ color: rgba(244,235,211,0.85); }
+  .cat-card .count{
+    position:absolute;
+    top:10px; right:12px;
+    font-size:11px;
+    color: var(--gold-soft);
+    font-weight:600;
+    opacity:0.8;
+  }
+  .cat-card.selected .count{ color: var(--gold-soft); }
+
+  .timer-row{
+    display:flex;
+    align-items:center;
+    gap:14px;
+    margin-bottom: 34px;
+    color: var(--paper-dim);
+    font-size: 14px;
+  }
+  .timer-choice{
+    display:flex; gap:8px;
+  }
+  .timer-btn{
+    font-family:'Be Vietnam Pro';
+    font-weight:700;
+    font-size:14px;
+    padding:8px 14px;
+    border-radius: 999px;
+    border: 2px solid rgba(227,178,76,0.3);
+    background: transparent;
+    color: var(--paper-dim);
+    cursor:pointer;
+  }
+  .timer-btn.active{
+    background: var(--gold);
+    border-color: var(--gold);
+    color: var(--ink);
+  }
+
+  .start-btn{
+    font-family:'Baloo 2';
+    font-weight:800;
+    font-size: 22px;
+    letter-spacing: 0.02em;
+    color: var(--ink);
+    background: linear-gradient(180deg, var(--gold-soft), var(--gold));
+    border: none;
+    border-radius: 999px;
+    padding: 18px 52px;
+    cursor:pointer;
+    box-shadow: 0 6px 0 var(--son-deep), 0 10px 24px rgba(0,0,0,0.35);
+    transition: transform .1s ease, box-shadow .1s ease;
+    -webkit-user-select:none; user-select:none;
+  }
+  .start-btn:active{
+    transform: translateY(4px);
+    box-shadow: 0 2px 0 var(--son-deep), 0 6px 14px rgba(0,0,0,0.35);
+  }
+  .start-btn:disabled{
+    opacity:0.35;
+    box-shadow:none;
+    cursor:default;
+  }
+
+  .hint{
+    font-size: 12px;
+    color: var(--paper-dim);
+    opacity:0.6;
+    margin-top: 18px;
+  }
+
+  /* ================= COUNTDOWN ================= */
+  #countdown{
+    justify-content:center;
+    align-items:center;
+  }
+  .cd-number{
+    font-family:'Baloo 2';
+    font-weight:800;
+    font-size: 40vw;
+    line-height:1;
+    color: var(--gold);
+    text-shadow: 0 6px 0 var(--son-deep);
+  }
+  .cd-label{
+    font-family:'Baloo 2';
+    font-size: 22px;
+    color: var(--paper-dim);
+    margin-top: -20px;
+    letter-spacing:0.1em;
+    text-transform:uppercase;
+  }
+
+  /* ================= PLAY SCREEN ================= */
+  #play{
+    justify-content:flex-start;
+    transition: background-color .18s ease;
+  }
+  .play-top{
+    width:100%;
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    padding: 18px 20px 6px;
+  }
+  .score-pill{
+    font-family:'Baloo 2';
+    font-weight:700;
+    font-size:16px;
+    background: rgba(0,0,0,0.25);
+    border:1px solid rgba(227,178,76,0.3);
+    padding:8px 16px;
+    border-radius:999px;
+    color: var(--gold-soft);
+  }
+  .timer-arc-wrap{
+    position:relative;
+    width:64px; height:64px;
+  }
+  .timer-arc-wrap svg{ transform: rotate(-90deg); }
+  .timer-arc-bg{ fill:none; stroke: rgba(255,255,255,0.12); stroke-width:6; }
+  .timer-arc-fg{ fill:none; stroke: var(--gold); stroke-width:6; stroke-linecap:round; transition: stroke .2s ease; }
+  .timer-num{
+    position:absolute; inset:0;
+    display:flex; align-items:center; justify-content:center;
+    font-family:'Baloo 2'; font-weight:800; font-size:18px;
+    color: var(--paper);
+  }
+
+  .stage{
+    flex:1;
+    width:100%;
+    display:flex;
+    flex-direction:column;
+    align-items:center;
+    justify-content:center;
+    padding: 10px 24px;
+    text-align:center;
+    position:relative;
+    touch-action: pan-y;
+  }
+  .cat-tag{
+    font-size:13px;
+    letter-spacing:0.25em;
+    text-transform:uppercase;
+    color: var(--gold-soft);
+    font-weight:600;
+    margin-bottom: 18px;
+    opacity:0.85;
+  }
+  .word-vn{
+    font-family:'Baloo 2';
+    font-weight:800;
+    font-size: clamp(40px, 11vw, 76px);
+    line-height:1.05;
+    color: var(--paper);
+    margin:0;
+    text-shadow: 0 4px 0 rgba(0,0,0,0.25);
+  }
+  .word-en{
+    margin-top: 14px;
+    font-size: 16px;
+    color: var(--paper-dim);
+    opacity:0.75;
+    letter-spacing:0.02em;
+  }
+  .word-en.hidden-en{ visibility:hidden; }
+
+  .toggle-en{
+    position:absolute;
+    bottom: 8px;
+    font-size:12px;
+    color: var(--paper-dim);
+    opacity:0.55;
+    background:none;
+    border:none;
+    text-decoration:underline;
+    cursor:pointer;
+    font-family:'Be Vietnam Pro';
+  }
+
+  .play-actions{
+    width:100%;
+    display:flex;
+    padding: 0 0 max(18px, env(safe-area-inset-bottom)) 0;
+    gap:2px;
+  }
+  .act-btn{
+    flex:1;
+    border:none;
+    padding: 22px 0 26px;
+    font-family:'Baloo 2';
+    font-weight:800;
+    font-size: 19px;
+    letter-spacing:0.03em;
+    text-transform:uppercase;
+    color: var(--paper);
+    cursor:pointer;
+    display:flex;
+    flex-direction:column;
+    align-items:center;
+    gap:4px;
+  }
+  .act-btn .glyph{ font-size:26px; }
+  .btn-skip{ background: linear-gradient(180deg, var(--skip), #5e2018); }
+  .btn-ok{ background: linear-gradient(180deg, var(--jade), #1c4a3d); }
+
+  /* seal stamp animation */
+  .seal{
+    position:absolute;
+    top:50%; left:50%;
+    width: 180px; height:180px;
+    margin:-90px 0 0 -90px;
+    border-radius:50%;
+    border: 6px solid;
+    display:flex; align-items:center; justify-content:center;
+    font-family:'Baloo 2'; font-weight:800; font-size:26px;
+    letter-spacing:0.05em;
+    opacity:0;
+    transform: scale(1.6) rotate(-18deg);
+    pointer-events:none;
+    z-index:5;
+  }
+  .seal.show{
+    animation: stampIt 0.55s cubic-bezier(.2,1.4,.4,1) forwards;
+  }
+  @keyframes stampIt{
+    0%{ opacity:0; transform: scale(2.2) rotate(-18deg); }
+    55%{ opacity:1; transform: scale(0.92) rotate(-10deg); }
+    70%{ transform: scale(1.05) rotate(-10deg); }
+    100%{ opacity:0; transform: scale(1) rotate(-10deg); }
+  }
+  .seal.ok{ border-color: var(--jade); color: var(--jade); background: rgba(47,110,92,0.12); }
+  .seal.skip{ border-color: var(--son); color: var(--son); background: rgba(200,55,46,0.12); }
+
+  /* ================= RESULTS ================= */
+  #results{
+    justify-content:flex-start;
+    padding: 0 24px;
+  }
+  .res-inner{
+    max-width:520px; width:100%; margin:0 auto;
+    padding-top: 6vh;
+    text-align:center;
+  }
+  .res-inner h2{
+    font-family:'Baloo 2';
+    font-weight:800;
+    font-size: clamp(30px, 8vw, 44px);
+    margin: 8px 0 4px;
+  }
+  .res-score{
+    font-family:'Baloo 2';
+    font-weight:800;
+    font-size: 20px;
+    color: var(--gold);
+    margin-bottom: 28px;
+  }
+  .res-list{
+    text-align:left;
+    max-height: 40vh;
+    overflow-y:auto;
+    margin-bottom: 28px;
+    border-top: 1px solid rgba(227,178,76,0.2);
+  }
+  .res-row{
+    display:flex;
+    justify-content:space-between;
+    align-items:center;
+    padding: 12px 4px;
+    border-bottom: 1px solid rgba(227,178,76,0.15);
+    font-size:15px;
+  }
+  .res-row .rv{ font-family:'Baloo 2'; font-weight:600; }
+  .res-row .re{ color:var(--paper-dim); font-size:13px; margin-left:8px;}
+  .res-row .badge{
+    font-size: 18px;
+  }
+  .res-actions{ display:flex; gap:12px; padding-bottom: 30px; }
+  .res-actions button{
+    flex:1;
+    font-family:'Baloo 2';
+    font-weight:700;
+    font-size:16px;
+    padding: 15px 0;
+    border-radius: 999px;
+    cursor:pointer;
+    border: 2px solid rgba(227,178,76,0.35);
+  }
+  .btn-again{
+    background: linear-gradient(180deg, var(--gold-soft), var(--gold));
+    color: var(--ink);
+    border:none;
+  }
+  .btn-home{
+    background: transparent;
+    color: var(--paper);
+  }
+
+  @media (prefers-reduced-motion: reduce){
+    .seal.show{ animation: none; opacity:1; }
+    *{ transition:none !important; }
+  }
+</style>
+</head>
+<body>
+
+<!-- ============ HOME ============ -->
+<section id="home" class="screen active">
+  <div class="border-strip"></div>
+  <div class="home-inner">
+    <div class="eyebrow">Trò chơi đoán chữ</div>
+    <h1 class="title">Đố <span class="accent">Chữ</span></h1>
+    <p class="subtitle">Vietnamese charades. Pick your categories, act out the word before time runs out — no talking, just gestures!</p>
+
+    <div class="cat-grid" id="catGrid"></div>
+
+    <div class="timer-row">
+      <span>Thời gian / Time:</span>
+      <div class="timer-choice" id="timerChoice">
+        <button class="timer-btn" data-t="30">30s</button>
+        <button class="timer-btn active" data-t="60">60s</button>
+        <button class="timer-btn" data-t="90">90s</button>
+      </div>
+    </div>
+
+    <button class="start-btn" id="startBtn">Bắt Đầu — Start</button>
+    <div class="hint">Tip: pass the phone to the actor, tap ✓ or ✕ as your team guesses.</div>
+  </div>
+</section>
+
+<!-- ============ COUNTDOWN ============ -->
+<section id="countdown" class="screen">
+  <div class="cd-number" id="cdNumber">3</div>
+  <div class="cd-label">Sẵn sàng?</div>
+</section>
+
+<!-- ============ PLAY ============ -->
+<section id="play" class="screen">
+  <div class="play-top">
+    <div class="score-pill" id="scorePill">0 điểm</div>
+    <div class="timer-arc-wrap">
+      <svg width="64" height="64" viewBox="0 0 64 64">
+        <circle class="timer-arc-bg" cx="32" cy="32" r="27"></circle>
+        <circle class="timer-arc-fg" id="arcFg" cx="32" cy="32" r="27" stroke-dasharray="169.6" stroke-dashoffset="0"></circle>
+      </svg>
+      <div class="timer-num" id="timeNum">60</div>
+    </div>
+  </div>
+
+  <div class="stage" id="stage">
+    <div class="cat-tag" id="catTag">ĐỘNG VẬT</div>
+    <h2 class="word-vn" id="wordVn">Con Voi</h2>
+    <div class="word-en" id="wordEn">Elephant</div>
+    <div class="seal ok" id="sealOk">ĐÚNG!</div>
+    <div class="seal skip" id="sealSkip">BỎ QUA</div>
+    <button class="toggle-en" id="toggleEn">hide English</button>
+  </div>
+
+  <div class="play-actions">
+    <button class="act-btn btn-skip" id="skipBtn"><span class="glyph">✕</span>Bỏ qua</button>
+    <button class="act-btn btn-ok" id="okBtn"><span class="glyph">✓</span>Đúng rồi</button>
+  </div>
+</section>
+
+<!-- ============ RESULTS ============ -->
+<section id="results" class="screen">
+  <div class="border-strip"></div>
+  <div class="res-inner">
+    <div class="eyebrow">Hết giờ — Time's up</div>
+    <h2>Kết Quả</h2>
+    <div class="res-score" id="resScore">0 correct · 0 skipped</div>
+    <div class="res-list" id="resList"></div>
+    <div class="res-actions">
+      <button class="btn-home" id="homeBtn">Về Trang Chủ</button>
+      <button class="btn-again" id="againBtn">Chơi Lại</button>
+    </div>
+  </div>
+</section>
+
+<script>
+(function(){
+
+  // ---------------- WORD BANK ----------------
+  const WORDS = {
+    "Động Vật": {en:"Animals", words:[
+      ["Voi","Elephant"], ["Hổ","Tiger"], ["Mèo","Cat"],
+      ["Chó","Dog"], ["Gà","Chicken"], ["Vịt","Duck"],
+      ["Cá","Fish"], ["Rùa","Turtle"], ["Khỉ","Monkey"],
+      ["Rắn","Snake"], ["Ong","Bee"], ["Bướm","Butterfly"],
+      ["Trâu","Water buffalo"], ["Ngựa","Horse"], ["Dê","Goat"],
+      ["Cừu","Sheep"], ["Heo","Pig"], ["Chuột","Mouse / rat"],
+      ["Thỏ","Rabbit"], ["Gấu","Bear"], ["Sư Tử","Lion"],
+      ["Báo","Leopard"], ["Cáo","Fox"], ["Sóc","Squirrel"],
+      ["Nai","Deer"], ["Hươu Cao Cổ","Giraffe"], ["Cá Sấu","Crocodile"],
+      ["Cá Voi","Whale"], ["Cá Mập","Shark"], ["Sứa","Jellyfish"],
+      ["Tôm","Shrimp"], ["Cua","Crab"], ["Ốc Sên","Snail"],
+      ["Ếch","Frog"], ["Nhện","Spider"], ["Kiến","Ant"],
+      ["Chuồn Chuồn","Dragonfly"], ["Dơi","Bat"], ["Cú Mèo","Owl"],
+      ["Đại Bàng","Eagle"], ["Chim Bồ Câu","Pigeon"], ["Công","Peacock"],
+      ["Vẹt","Parrot"], ["Cá Heo","Dolphin"]
+    ]},
+    "Đồ Ăn": {en:"Food", words:[
+      ["Phở","Noodle soup"], ["Bánh Mì","Sandwich"], ["Gỏi Cuốn","Fresh spring rolls"],
+      ["Cơm Tấm","Broken rice"], ["Bún Chả","Grilled pork noodles"], ["Chả Giò","Fried spring rolls"],
+      ["Bánh Xèo","Sizzling pancake"], ["Xôi","Sticky rice"], ["Trứng","Egg"],
+      ["Bánh Chưng","Square rice cake"], ["Cà Phê Sữa Đá","Iced milk coffee"], ["Trà Sữa","Bubble tea"],
+      ["Kem","Ice cream"], ["Dừa","Coconut"], ["Xoài","Mango"],
+      ["Bún Bò Huế","Spicy beef noodle soup"], ["Hủ Tiếu","Rice noodle soup"], ["Bánh Cuốn","Steamed rice rolls"],
+      ["Bánh Bèo","Water fern cakes"], ["Chè","Sweet dessert soup"], ["Bánh Flan","Caramel custard"],
+      ["Sinh Tố","Smoothie"], ["Nước Mía","Sugarcane juice"], ["Bánh Tráng Trộn","Rice paper salad"],
+      ["Nem Nướng","Grilled pork skewers"], ["Cá Kho Tộ","Braised fish in clay pot"], ["Canh Chua","Sour soup"],
+      ["Thịt Kho","Braised pork"], ["Rau Muống Xào","Stir-fried water spinach"], ["Bánh Khọt","Mini savory pancakes"],
+      ["Bò Kho","Beef stew"], ["Mì Quảng","Turmeric noodles"], ["Bánh Đúc","Rice cake"],
+      ["Chuối","Banana"], ["Dưa Hấu","Watermelon"], ["Ổi","Guava"],
+      ["Sầu Riêng","Durian"], ["Chôm Chôm","Rambutan"], ["Măng Cụt","Mangosteen"],
+      ["Thanh Long","Dragon fruit"], ["Đậu Phộng","Peanuts"]
+    ]},
+    "Nghề Nghiệp": {en:"Professions", words:[
+      ["Bác Sĩ","Doctor"], ["Giáo Viên","Teacher"], ["Đầu Bếp","Chef"],
+      ["Cảnh Sát","Police officer"], ["Ca Sĩ","Singer"], ["Nông Dân","Farmer"],
+      ["Thợ May","Tailor"], ["Phi Công","Pilot"], ["Ngư Dân","Fisherman"],
+      ["Họa Sĩ","Painter"], ["Lính Cứu Hỏa","Firefighter"], ["Tài Xế","Driver"],
+      ["Kỹ Sư","Engineer"], ["Luật Sư","Lawyer"], ["Nha Sĩ","Dentist"],
+      ["Y Tá","Nurse"], ["Thợ Mộc","Carpenter"], ["Thợ Điện","Electrician"],
+      ["Thợ Xây","Construction worker"], ["Kế Toán","Accountant"], ["Nhà Báo","Journalist"],
+      ["Diễn Viên","Actor"], ["Vũ Công","Dancer"], ["Nhạc Sĩ","Musician"],
+      ["Nhiếp Ảnh Gia","Photographer"], ["Hướng Dẫn Viên","Tour guide"], ["Thủ Thư","Librarian"],
+      ["Bảo Vệ","Security guard"], ["Người Mẫu","Model"], ["Đạo Diễn","Director"],
+      ["Vận Động Viên","Athlete"], ["Thợ Cắt Tóc","Barber"], ["Người Bán Hàng","Salesperson"],
+      ["Thợ Sửa Xe","Mechanic"], ["Phục Vụ","Waiter / waitress"], ["Quản Lý","Manager"],
+      ["Thư Ký","Secretary"], ["Phi Hành Gia","Astronaut"], ["Thợ Lặn","Diver"],
+      ["Người Đưa Thư","Mailman"]
+    ]},
+    "Hành Động": {en:"Actions", words:[
+      ["Nhảy Múa","Dance"], ["Bơi Lội","Swim"], ["Nấu Ăn","Cook"],
+      ["Ngủ","Sleep"], ["Chạy","Run"], ["Hát","Sing"],
+      ["Câu Cá","Fish (angling)"], ["Đạp Xe","Cycle"], ["Cười","Laugh"],
+      ["Khóc","Cry"], ["Đọc Sách","Read"], ["Vẽ Tranh","Paint / draw"],
+      ["Đánh Răng","Brush teeth"], ["Lái Xe","Drive"], ["Nhảy","Jump"],
+      ["Đi Bộ","Walk"], ["Bò","Crawl"], ["Đá Bóng","Kick a ball"],
+      ["Ném","Throw"], ["Bắt","Catch"], ["Leo Trèo","Climb"],
+      ["Trượt","Slide"], ["Rửa Bát","Wash dishes"], ["Giặt Đồ","Do laundry"],
+      ["Quét Nhà","Sweep the floor"], ["Lau Nhà","Mop the floor"], ["Tắm","Bathe / shower"],
+      ["Cạo Râu","Shave"], ["Chải Tóc","Brush hair"], ["Mặc Quần Áo","Get dressed"],
+      ["Đánh Đàn","Play an instrument"], ["Chụp Ảnh","Take a photo"], ["Viết","Write"],
+      ["Gõ Cửa","Knock on a door"], ["Mở Cửa","Open a door"], ["Đóng Cửa","Close a door"],
+      ["Ngáp","Yawn"], ["Hắt Hơi","Sneeze"], ["Ho","Cough"],
+      ["Vỗ Tay","Clap"]
+    ]},
+    "Truyền Thuyết & Văn Hóa": {en:"Legends & Culture", words:[
+      ["Tấm Cám","Vietnamese Cinderella tale"], ["Sơn Tinh","Mountain God"], ["Thủy Tinh","Water God"],
+      ["Thánh Gióng","Legendary boy hero"], ["Chú Cuội","Man in the moon"], ["Rồng","Dragon"],
+      ["Tiên","Fairy"], ["Ông Địa","Earth God"], ["Táo Quân","Kitchen Gods"],
+      ["Lạc Long Quân","Dragon Lord ancestor"], ["Âu Cơ","Fairy ancestress"], ["Mai An Tiêm","Watermelon legend hero"],
+      ["Sọ Dừa","Coconut Shell boy"], ["Thạch Sanh","Legendary warrior"], ["Ông Bụt","Wise old genie"],
+      ["Bà Tiên","Fairy godmother"], ["Phù Thủy","Witch"], ["Ma","Ghost"],
+      ["Quỷ","Devil"], ["Thần Chết","Grim Reaper"], ["Ngọc Hoàng","Jade Emperor"],
+      ["Diêm Vương","King of Hell"], ["Hằng Nga","Moon goddess"], ["Cung Trăng","Moon palace"],
+      ["Con Cò","The stork (folk symbol)"], ["Trống Đồng","Bronze drum"], ["Chùa Một Cột","One Pillar Pagoda"],
+      ["Vịnh Hạ Long","Ha Long Bay"], ["Múa Rối Nước","Water puppetry"], ["Quan Họ","Folk singing style"],
+      ["Cải Lương","Reformed opera"], ["Tuổi Tý","Year of the Rat"], ["Tuổi Sửu","Year of the Ox"],
+      ["Tuổi Dần","Year of the Tiger"], ["Tuổi Mão","Year of the Cat"], ["Tuổi Thìn","Year of the Dragon"],
+      ["Tuổi Tỵ","Year of the Snake"], ["Tuổi Ngọ","Year of the Horse"], ["Tuổi Mùi","Year of the Goat"],
+      ["Tuổi Thân","Year of the Monkey"], ["Tuổi Dậu","Year of the Rooster"]
+    ]},
+    "Đồ Vật": {en:"Objects", words:[
+      ["Nón Lá","Conical hat"], ["Áo Dài","Traditional dress"], ["Xe Máy","Motorbike"],
+      ["Đũa","Chopsticks"], ["Quạt","Fan"], ["Đèn Lồng","Lantern"],
+      ["Võng","Hammock"], ["Ô Dù","Umbrella"], ["Điện Thoại","Phone"],
+      ["Đồng Hồ","Clock"], ["Gương","Mirror"], ["Ghế","Chair"],
+      ["Bàn","Table"], ["Giường","Bed"], ["Tủ","Cabinet"],
+      ["Cửa","Door"], ["Cửa Sổ","Window"], ["Chìa Khóa","Key"],
+      ["Ví","Wallet"], ["Túi Xách","Handbag"], ["Balo","Backpack"],
+      ["Kính","Glasses"], ["Mũ","Hat"], ["Giày","Shoes"],
+      ["Dép","Sandals"], ["Áo Mưa","Raincoat"], ["Khăn","Scarf / towel"],
+      ["Chăn","Blanket"], ["Gối","Pillow"], ["Nồi","Pot"],
+      ["Chảo","Pan"], ["Bát","Bowl"], ["Đĩa","Plate"],
+      ["Ly","Cup / glass"], ["Bình Nước","Water bottle"], ["Kéo","Scissors"],
+      ["Bút","Pen"], ["Máy Tính","Computer"], ["Ti Vi","TV"],
+      ["Tủ Lạnh","Refrigerator"]
+    ]},
+    "Thiên Nhiên": {en:"Nature", words:[
+      ["Mặt Trời","Sun"], ["Mặt Trăng","Moon"], ["Ngôi Sao","Star"],
+      ["Mưa","Rain"], ["Gió","Wind"], ["Sông","River"],
+      ["Núi","Mountain"], ["Biển","Sea / ocean"], ["Cây","Tree"],
+      ["Hoa","Flower"], ["Lửa","Fire"], ["Tuyết","Snow"],
+      ["Cầu Vồng","Rainbow"], ["Sấm Sét","Thunder & lightning"], ["Mây","Cloud"],
+      ["Sương Mù","Fog"], ["Bão","Storm"], ["Sa Mạc","Desert"],
+      ["Rừng","Forest"], ["Hồ","Lake"], ["Thác Nước","Waterfall"],
+      ["Đá","Rock / stone"], ["Cát","Sand"], ["Đất","Soil / earth"],
+      ["Lá","Leaf"], ["Rễ Cây","Root"], ["Hạt Giống","Seed"],
+      ["Cỏ","Grass"], ["Nấm","Mushroom"], ["Đảo","Island"],
+      ["Hang Động","Cave"], ["Núi Lửa","Volcano"], ["Động Đất","Earthquake"],
+      ["Sóng Thần","Tsunami"], ["Bình Minh","Sunrise"], ["Hoàng Hôn","Sunset"],
+      ["Trái Đất","Planet Earth"], ["Vũ Trụ","Universe"], ["Sao Chổi","Comet"],
+      ["Nhật Thực","Solar eclipse"]
+    ]},
+    "Thể Thao": {en:"Sports", words:[
+      ["Bóng Đá","Soccer"], ["Bóng Rổ","Basketball"], ["Cầu Lông","Badminton"],
+      ["Bóng Bàn","Table tennis"], ["Võ Thuật","Martial arts"], ["Đấu Vật","Wrestling"],
+      ["Nhảy Dây","Jump rope"], ["Kéo Co","Tug of war"], ["Đua Xe","Racing"],
+      ["Leo Núi","Mountain climbing"], ["Bắn Cung","Archery"], ["Cờ Vua","Chess"],
+      ["Chạy Bộ","Jogging"], ["Đấm Bốc","Boxing"], ["Judo","Judo"],
+      ["Karate","Karate"], ["Taekwondo","Taekwondo"], ["Vovinam","Vietnamese martial art"],
+      ["Bóng Chuyền","Volleyball"], ["Golf","Golf"], ["Trượt Ván","Skateboarding"],
+      ["Trượt Tuyết","Skiing"], ["Trượt Băng","Ice skating"], ["Bowling","Bowling"],
+      ["Bi-a","Billiards"], ["Nhảy Cao","High jump"], ["Nhảy Xa","Long jump"],
+      ["Ném Lao","Javelin throw"], ["Đẩy Tạ","Shot put"], ["Cử Tạ","Weightlifting"],
+      ["Thể Dục Dụng Cụ","Gymnastics"], ["Đua Thuyền","Boat racing"], ["Lướt Sóng","Surfing"],
+      ["Đá Cầu","Shuttlecock kicking"], ["Nhảy Bao Bố","Sack race"], ["Ô Ăn Quan","Vietnamese folk game"],
+      ["Rồng Rắn Lên Mây","Vietnamese children's game"], ["Trốn Tìm","Hide and seek"], ["Bắn Súng","Shooting"],
+      ["Bóng Chày","Baseball"]
+    ]},
+    "Gia Đình": {en:"Family", words:[
+      ["Ông Nội","Paternal grandfather"], ["Bà Ngoại","Maternal grandmother"], ["Bố","Father"],
+      ["Mẹ","Mother"], ["Anh Trai","Older brother"], ["Chị Gái","Older sister"],
+      ["Em Bé","Baby"], ["Cô Dâu","Bride"], ["Chú Rể","Groom"],
+      ["Cháu","Grandchild / niece / nephew"], ["Ông Ngoại","Maternal grandfather"], ["Bà Nội","Paternal grandmother"],
+      ["Em Trai","Younger brother"], ["Em Gái","Younger sister"], ["Cô","Aunt (father's sister)"],
+      ["Chú","Uncle (father's younger brother)"], ["Bác","Aunt / uncle (parent's older sibling)"], ["Dì","Aunt (mother's sister)"],
+      ["Cậu","Uncle (mother's brother)"], ["Con Trai","Son"], ["Con Gái","Daughter"],
+      ["Vợ","Wife"], ["Chồng","Husband"], ["Anh Rể","Brother-in-law"],
+      ["Chị Dâu","Sister-in-law"], ["Gia Đình","Family"], ["Sinh Đôi","Twins"],
+      ["Trẻ Em","Children"], ["Người Lớn","Adult"], ["Người Già","Elderly person"],
+      ["Hàng Xóm","Neighbor"], ["Bạn Thân","Best friend"], ["Người Yêu","Girlfriend / boyfriend"],
+      ["Hôn Nhân","Marriage"], ["Ly Hôn","Divorce"], ["Mang Thai","Pregnant"],
+      ["Sinh Con","Give birth"], ["Nuôi Dạy Con","Raising children"], ["Họp Mặt Gia Đình","Family gathering"],
+      ["Kỷ Niệm Ngày Cưới","Wedding anniversary"]
+    ]},
+    "Lễ Hội": {en:"Festivals", words:[
+      ["Tết Nguyên Đán","Lunar New Year"], ["Trung Thu","Mid-Autumn Festival"], ["Múa Lân","Lion dance"],
+      ["Pháo Hoa","Fireworks"], ["Lì Xì","Lucky money envelope"], ["Bánh Trung Thu","Mooncake"],
+      ["Đám Cưới","Wedding"], ["Sinh Nhật","Birthday"], ["Giáng Sinh","Christmas"],
+      ["Halloween","Halloween"], ["Lễ Tình Nhân","Valentine's Day"], ["Ngày Của Mẹ","Mother's Day"],
+      ["Ngày Của Cha","Father's Day"], ["Quốc Khánh","National Day"], ["Ngày Nhà Giáo","Teacher's Day"],
+      ["Ngày Phụ Nữ","Women's Day"], ["Rước Đèn Trung Thu","Lantern parade"], ["Đốt Pháo","Firecrackers"],
+      ["Câu Đối Đỏ","Red couplets"], ["Hoa Mai","Apricot blossom"], ["Hoa Đào","Peach blossom"],
+      ["Dưa Hấu Đỏ","Red watermelon"], ["Mâm Ngũ Quả","Five-fruit tray"], ["Cúng Ông Táo","Kitchen god ceremony"],
+      ["Giao Thừa","New Year's Eve"], ["Xông Đất","First house visit"], ["Chúc Tết","New Year greetings"],
+      ["Bao Lì Xì","Red envelope"], ["Hội Chợ","Fair"], ["Diễu Hành","Parade"],
+      ["Tiệc Sinh Nhật","Birthday party"], ["Thổi Nến","Blow out candles"], ["Mở Quà","Open presents"],
+      ["Đám Tang","Funeral"], ["Lễ Tốt Nghiệp","Graduation ceremony"], ["Lễ Rửa Tội","Baptism"],
+      ["Lễ Hội Hoa Đăng","Lantern festival"], ["Hội Lim","Lim Festival"], ["Lễ Hội Chùa Hương","Perfume Pagoda Festival"],
+      ["Giỗ Tổ Hùng Vương","Hung Kings Festival"]
+    ]},
+    "Phương Tiện": {en:"Vehicles", words:[
+      ["Xe Đạp","Bicycle"], ["Xe Buýt","Bus"], ["Máy Bay","Airplane"],
+      ["Tàu Hỏa","Train"], ["Thuyền","Boat"], ["Xích Lô","Cyclo"],
+      ["Xe Tải","Truck"], ["Tàu Ngầm","Submarine"], ["Khinh Khí Cầu","Hot air balloon"],
+      ["Xe Hơi","Car"], ["Xe Cứu Thương","Ambulance"], ["Xe Cứu Hỏa","Fire truck"],
+      ["Xe Cảnh Sát","Police car"], ["Trực Thăng","Helicopter"], ["Tàu Vũ Trụ","Spaceship"],
+      ["Xe Kéo","Rickshaw / cart"], ["Xe Ba Bánh","Three-wheeler"], ["Thuyền Buồm","Sailboat"],
+      ["Ca Nô","Speedboat"], ["Phà","Ferry"], ["Tàu Thủy","Ship"],
+      ["Xe Điện","Tram"], ["Xe Golf","Golf cart"], ["Xe Cút Kít","Wheelbarrow"],
+      ["Xe Lăn","Wheelchair"], ["Xe Nâng","Forklift"], ["Máy Kéo","Tractor"],
+      ["Xe Ủi","Bulldozer"], ["Xe Cần Cẩu","Crane truck"], ["Xe Đua","Race car"],
+      ["Mô Tô","Motorcycle"], ["Tàu Cao Tốc","High-speed train"], ["Khí Cầu","Airship"],
+      ["Xe Trượt Tuyết","Snowmobile"], ["Xe Scooter","Scooter"], ["Xe Bồn","Tanker truck"],
+      ["Xe Rác","Garbage truck"], ["Tàu Đánh Cá","Fishing boat"], ["Xe Đưa Đón","Shuttle bus"],
+      ["Xe Kem","Ice cream truck"]
+    ]},
+    "Cảm Xúc": {en:"Emotions", words:[
+      ["Vui","Happy"], ["Buồn","Sad"], ["Giận Dữ","Angry"],
+      ["Sợ Hãi","Scared"], ["Ngạc Nhiên","Surprised"], ["Bối Rối","Confused"],
+      ["Xấu Hổ","Embarrassed"], ["Lo Lắng","Worried"], ["Hào Hứng","Excited"],
+      ["Chán","Bored"], ["Mệt Mỏi","Tired"], ["Đói","Hungry"],
+      ["Khát","Thirsty"], ["Yêu","Love"], ["Ghét","Hate"],
+      ["Ghen Tị","Jealous"], ["Tự Hào","Proud"], ["Hối Hận","Regretful"],
+      ["Cô Đơn","Lonely"], ["Hạnh Phúc","Blissful"], ["Thất Vọng","Disappointed"],
+      ["Hoảng Sợ","Panicked"], ["Bình Tĩnh","Calm"], ["Căng Thẳng","Stressed"],
+      ["Hồi Hộp","Nervous"], ["Tò Mò","Curious"], ["Hài Lòng","Satisfied"],
+      ["Biết Ơn","Grateful"], ["Ngưỡng Mộ","Admiring"], ["Đau Khổ","Suffering"],
+      ["Bực Mình","Annoyed"], ["Sốc","Shocked"], ["Nhẹ Nhõm","Relieved"],
+      ["Hoang Mang","Bewildered"], ["Tuyệt Vọng","Hopeless"], ["Vô Cảm","Numb"],
+      ["Kiêu Ngạo","Arrogant"], ["Rụt Rè","Shy"], ["Dũng Cảm","Brave"],
+      ["Yên Bình","Peaceful"]
+    ]},
+    "Địa Điểm": {en:"Places", words:[
+      ["Trường Học","School"], ["Bệnh Viện","Hospital"], ["Chợ","Market"],
+      ["Siêu Thị","Supermarket"], ["Công Viên","Park"], ["Sân Bay","Airport"],
+      ["Nhà Ga","Train station"], ["Bãi Biển","Beach"], ["Rạp Chiếu Phim","Cinema"],
+      ["Nhà Hàng","Restaurant"], ["Quán Cà Phê","Coffee shop"], ["Thư Viện","Library"],
+      ["Bảo Tàng","Museum"], ["Sở Thú","Zoo"], ["Nhà Thờ","Church"],
+      ["Chùa","Buddhist temple"], ["Đền","Shrine"], ["Ngân Hàng","Bank"],
+      ["Bưu Điện","Post office"], ["Đồn Cảnh Sát","Police station"], ["Khách Sạn","Hotel"],
+      ["Sân Vận Động","Stadium"], ["Nhà Hát","Theater"], ["Hồ Bơi","Swimming pool"],
+      ["Phòng Gym","Gym"], ["Tiệm Bánh","Bakery"], ["Hiệu Sách","Bookstore"],
+      ["Tiệm Cắt Tóc","Barbershop"], ["Bãi Đỗ Xe","Parking lot"], ["Cây Xăng","Gas station"],
+      ["Nông Trại","Farm"], ["Nhà Máy","Factory"], ["Văn Phòng","Office"],
+      ["Tòa Nhà Chọc Trời","Skyscraper"], ["Cầu","Bridge"], ["Đường Hầm","Tunnel"],
+      ["Làng Quê","Countryside village"], ["Thành Phố","City"], ["Hòn Đảo","Island"],
+      ["Sân Golf","Golf course"]
+    ]}
+  };
+
+  // ---------------- STATE ----------------
+  let selectedCats = new Set(Object.keys(WORDS));
+  let roundLength = 60;
+  let showEnglish = true;
+  let deck = [];
+  let deckIdx = 0;
+  let timeLeft = 60;
+  let timerId = null;
+  let score = 0;
+  let log = []; // {vn, en, cat, correct}
+
+  const $ = id => document.getElementById(id);
+  const screens = { home: $('home'), countdown: $('countdown'), play: $('play'), results: $('results') };
+  function show(name){
+    Object.values(screens).forEach(s => s.classList.remove('active'));
+    screens[name].classList.add('active');
+  }
+
+  // ---------------- HOME: category grid ----------------
+  const catGrid = $('catGrid');
+  Object.keys(WORDS).forEach(cat => {
+    const card = document.createElement('div');
+    card.className = 'cat-card selected';
+    card.dataset.cat = cat;
+    card.innerHTML = `<span class="count">${WORDS[cat].words.length}</span>
+      <span class="cn">${cat}</span><span class="ce">${WORDS[cat].en}</span>`;
+    card.addEventListener('click', () => {
+      if(selectedCats.has(cat)){
+        selectedCats.delete(cat);
+        card.classList.remove('selected');
+      } else {
+        selectedCats.add(cat);
+        card.classList.add('selected');
+      }
+      updateStartBtn();
+    });
+    catGrid.appendChild(card);
+  });
+
+  function updateStartBtn(){
+    $('startBtn').disabled = selectedCats.size === 0;
+  }
+
+  // timer choice
+  document.querySelectorAll('.timer-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      document.querySelectorAll('.timer-btn').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      roundLength = parseInt(btn.dataset.t, 10);
+    });
+  });
+
+  // ---------------- START FLOW ----------------
+  $('startBtn').addEventListener('click', () => {
+    buildDeck();
+    if(deck.length === 0) return;
+    show('countdown');
+    runCountdown(3, () => {
+      show('play');
+      startRound();
+    });
+  });
+
+  function buildDeck(){
+    deck = [];
+    selectedCats.forEach(cat => {
+      WORDS[cat].words.forEach(([vn, en]) => deck.push({vn, en, cat}));
+    });
+    // shuffle
+    for(let i = deck.length - 1; i > 0; i--){
+      const j = Math.floor(Math.random() * (i + 1));
+      [deck[i], deck[j]] = [deck[j], deck[i]];
+    }
+    deckIdx = 0;
+  }
+
+  function runCountdown(n, done){
+    $('cdNumber').textContent = n;
+    if(n <= 0){ done(); return; }
+    let cur = n;
+    const cdTimer = setInterval(() => {
+      cur -= 1;
+      if(cur <= 0){
+        clearInterval(cdTimer);
+        done();
+      } else {
+        $('cdNumber').textContent = cur;
+      }
+    }, 700);
+  }
+
+  // ---------------- ROUND ----------------
+  const ARC_CIRC = 169.6;
+
+  function startRound(){
+    score = 0;
+    log = [];
+    timeLeft = roundLength;
+    updateScorePill();
+    updateArc();
+    nextWord();
+    clearInterval(timerId);
+    timerId = setInterval(() => {
+      timeLeft -= 1;
+      updateArc();
+      if(timeLeft <= 0){
+        clearInterval(timerId);
+        endRound();
+      }
+    }, 1000);
+  }
+
+  function updateArc(){
+    $('timeNum').textContent = timeLeft;
+    const frac = Math.max(0, timeLeft / roundLength);
+    $('arcFg').setAttribute('stroke-dashoffset', ARC_CIRC * (1 - frac));
+    const arc = $('arcFg');
+    if(timeLeft <= 10){ arc.style.stroke = 'var(--son)'; }
+    else { arc.style.stroke = 'var(--gold)'; }
+  }
+
+  function updateScorePill(){
+    $('scorePill').textContent = score + ' điểm';
+  }
+
+  function nextWord(){
+    if(deckIdx >= deck.length){
+      // reshuffle and continue if they blow through the whole deck
+      buildDeck();
+    }
+    const item = deck[deckIdx++];
+    $('catTag').textContent = item.cat.toUpperCase();
+    $('wordVn').textContent = item.vn;
+    $('wordEn').textContent = item.en;
+    $('play').dataset.vn = item.vn;
+    $('play').dataset.en = item.en;
+    $('play').dataset.cat = item.cat;
+  }
+
+  function judge(correct){
+    if(timeLeft <= 0) return;
+    const vn = $('play').dataset.vn, en = $('play').dataset.en, cat = $('play').dataset.cat;
+    log.push({vn, en, cat, correct});
+    if(correct){ score += 1; }
+    updateScorePill();
+    flashSeal(correct);
+    nextWord();
+  }
+
+  function flashSeal(correct){
+    const el = correct ? $('sealOk') : $('sealSkip');
+    el.classList.remove('show');
+    void el.offsetWidth; // reflow to restart animation
+    el.classList.add('show');
+  }
+
+  $('okBtn').addEventListener('click', () => judge(true));
+  $('skipBtn').addEventListener('click', () => judge(false));
+
+  $('toggleEn').addEventListener('click', () => {
+    showEnglish = !showEnglish;
+    $('wordEn').classList.toggle('hidden-en', !showEnglish);
+    $('toggleEn').textContent = showEnglish ? 'hide English' : 'show English';
+  });
+
+  // keyboard support for desktop testing
+  window.addEventListener('keydown', (e) => {
+    if(!screens.play.classList.contains('active')) return;
+    if(e.key === 'ArrowRight' || e.key === ' ') judge(true);
+    if(e.key === 'ArrowLeft') judge(false);
+  });
+
+  function endRound(){
+    show('results');
+    const correctCount = log.filter(l => l.correct).length;
+    const skipCount = log.length - correctCount;
+    $('resScore').textContent = `${correctCount} correct · ${skipCount} skipped`;
+    const list = $('resList');
+    list.innerHTML = '';
+    log.forEach(l => {
+      const row = document.createElement('div');
+      row.className = 'res-row';
+      row.innerHTML = `<div><span class="rv">${l.vn}</span><span class="re">${l.en}</span></div>
+        <div class="badge">${l.correct ? '✅' : '⏭️'}</div>`;
+      list.appendChild(row);
+    });
+  }
+
+  $('againBtn').addEventListener('click', () => {
+    show('countdown');
+    runCountdown(3, () => { show('play'); startRound(); });
+  });
+  $('homeBtn').addEventListener('click', () => {
+    clearInterval(timerId);
+    show('home');
+  });
+
+  updateStartBtn();
+})();
+</script>
+</body>
+</html>
